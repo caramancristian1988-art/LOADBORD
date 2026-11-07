@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/ui/Time";
 import { AlertTriangle, ArrowRight, Check, FileText, GraduationCap, Mail, Phone, Minus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -122,7 +123,7 @@ export function LoadDetailView({
           {load.negotiation && load.status === "NEGOTIATING" && (
             <span className="text-warn">{load.negotiation.status === "AGREED" ? `rate agreed ${money(load.negotiation.agreedRate)}` : `in talks · broker at ${money(load.negotiation.brokerOffer)}`}</span>
           )}
-          <span className="ml-auto">Posted {age(load.postedAt)} ago</span>
+          <span className="ml-auto">Posted <Time value={load.postedAt} format="age" /> ago</span>
         </div>
         <div className="mt-2 flex items-center gap-2 text-[18px] font-bold">
           {load.originCity}, {load.originState} <ArrowRight size={18} className="text-muted" /> {load.destCity}, {load.destState}
@@ -341,7 +342,7 @@ export function LoadDetailView({
         <ol className="space-y-1 text-[12.5px]">
           {[...load.history].reverse().map((h, i) => (
             <li key={i} className="flex gap-3">
-              <span className="w-28 shrink-0 text-muted">{dateTime(h.at)}</span>
+              <span className="w-28 shrink-0 text-muted"><Time value={h.at} /></span>
               <span className="font-medium">{STATUS_LABEL[h.status] ?? h.status}</span>
               {h.note && <span className="text-muted">{h.note}</span>}
             </li>

@@ -9,10 +9,12 @@ import { ALL_EQUIPMENT, parseLoadSearch, toQuery, type LoadSearch } from "@/lib/
 import { addDaysIso, todayIso } from "@/lib/format";
 import type { EquipCode } from "@/lib/sim/types";
 import { api } from "@/lib/api-client";
+import { createLocalStore, useLocalStore } from "@/lib/local-store";
 
 type TruckLite = { id: string; number: string; equipment: EquipCode; city: string; state: string; availableDate: string; maxWeight: number; trailerLength: number; status: string; driver: { name: string } | null };
 
-const RECENT_KEY = "ld.recentSearches";
+/** Recent searches shown as tabs above the search bar (per viewer). */
+const recentStore = createLocalStore<{ q: string; o: string; d: string }[]>("ld.recentSearches", []);
 
 function Popover({ label, active, children, width = 280 }: { label: string; active?: boolean; children: ReactNode; width?: number }) {
   const [open, setOpen] = useState(false);
@@ -63,21 +65,20 @@ export function SearchForm() {
   const [eqOpen, setEqOpen] = useState(false);
   const eqRef = useRef<HTMLDivElement>(null);
   const [trucks, setTrucks] = useState<TruckLite[]>([]);
-  const [recent, setRecent] = useState<{ q: string; o: string; d: string }[]>([]);
+  const recent = useLocalStore(recentStore);
+  const setRecent = recentStore.write;
 
-  // keep the form in sync when the URL changes (back/forward, truck shortcuts)
+  // keep the form in sync when the URL changes (back/forward, truck shortcuts):
+  // adjust state during render instead of in an effect
   const paramKey = params.toString();
-  useEffect(() => {
-    setF({ ...parseLoadSearch(Object.fromEntries(new URLSearchParams(paramKey).entries())), page: 1 });
-  }, [paramKey]);
+  const [syncedKey, setSyncedKey] = useState(paramKey);
+  if (syncedKey !== paramKey) {
+    setSyncedKey(paramKey);
+    setF({ ...current, page: 1 });
+  }
 
   useEffect(() => {
     api<{ trucks: TruckLite[] }>("/api/trucks").then((r) => setTrucks(r.trucks), () => {});
-    try {
-      setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]"));
-    } catch {
-      /* storage unavailable */
-    }
   }, []);
 
   useEffect(() => {
@@ -93,13 +94,7 @@ export function SearchForm() {
     const q = toQuery({ ...next, page: 1 }).toString();
     if (next.origin || next.dest) {
       const entry = { q, o: next.origin ?? next.originState ?? "Anywhere", d: next.dest ?? next.destState ?? "Anywhere" };
-      const list = [entry, ...recent.filter((r) => r.q !== q)].slice(0, 6);
-      setRecent(list);
-      try {
-        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
-      } catch {
-        /* ignore */
-      }
+      setRecent([entry, ...recent.filter((r) => r.q !== q)].slice(0, 6));
     }
     start(() => router.push(`${pathname}${q ? `?${q}` : ""}`));
   }
@@ -149,15 +144,7 @@ export function SearchForm() {
                   type="button"
                   aria-label="Remove search"
                   className="text-faint opacity-0 group-hover:opacity-100 hover:text-ink"
-                  onClick={() => {
-                    const list = recent.filter((x) => x.q !== r.q);
-                    setRecent(list);
-                    try {
-                      localStorage.setItem(RECENT_KEY, JSON.stringify(list));
-                    } catch {
-                      /* ignore */
-                    }
-                  }}
+                  onClick={() => setRecent(recent.filter((x) => x.q !== r.q))}
                 >
                   <X size={13} />
                 </button>

@@ -245,7 +245,7 @@ const ASK_LINES = ["Can you do {ask}?", "I'd need {ask} to make it work.", "My d
 export function respond(prev: NegState, action: DispatcherAction, ctx: NegContext): Reply {
   const rng = ctx.rng;
   const pers = PERSONALITY[ctx.personality];
-  let s: NegState = { ...prev, flags: [...prev.flags] };
+  const s: NegState = { ...prev, flags: [...prev.flags] };
   const out: Reply["messages"] = [];
   const say = (text: string, offer?: number) => out.push({ from: "broker", text, offer });
 

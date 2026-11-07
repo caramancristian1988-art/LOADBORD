@@ -42,34 +42,27 @@ export function BookLoad({
   costPerMile: number;
   onBooked?: () => void;
 }) {
-  const [rate, setRate] = useState<string>("");
-  const [truckId, setTruckId] = useState("");
-  const [driverId, setDriverId] = useState("");
-  const [fit, setFit] = useState<{ deadhead: number; errors: string[]; warnings: string[] } | null>(null);
+  // The modal is mounted fresh for each booking, so initial values come straight from props.
+  const [rate, setRate] = useState<string>(String(agreedRate ?? load.rate ?? ""));
+  // null = not chosen yet → default to the best compatible truck (trucks may still be loading)
+  const [chosenTruck, setTruckId] = useState<string | null>(null);
+  const [chosenDriver, setDriverId] = useState<string | null>(null);
+  const [fitState, setFit] = useState<{ truckId: string; deadhead: number; errors: string[]; warnings: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ rateConNo: string | null; training: TrainingResult } | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const ok = trucks.filter((t) => canHaul(t.equipment as EquipCode, load.equipment) && t.maxWeight >= load.weight);
-    const first = ok.find((t) => t.status === "AVAILABLE") ?? ok[0];
-    setRate(String(agreedRate ?? load.rate ?? ""));
-    setTruckId(first?.id ?? "");
-    setDriverId(first?.driverId ?? "");
-    setError(null);
-    setDone(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, load.id]);
+  const compatible = trucks.filter((t) => canHaul(t.equipment as EquipCode, load.equipment) && t.maxWeight >= load.weight);
+  const defaultTruck = compatible.find((t) => t.status === "AVAILABLE") ?? compatible[0];
+  const truckId = chosenTruck ?? defaultTruck?.id ?? "";
+  const driverId = chosenDriver ?? trucks.find((t) => t.id === truckId)?.driverId ?? "";
+  const fit = fitState?.truckId === truckId ? fitState : null;
 
   useEffect(() => {
-    if (!open || !truckId) {
-      setFit(null);
-      return;
-    }
+    if (!open || !truckId) return;
     let cancel = false;
     api<{ deadhead: number; errors: string[]; warnings: string[] }>(`/api/loads/${load.id}/fit?truckId=${truckId}`).then(
-      (f) => !cancel && setFit(f),
+      (f) => !cancel && setFit({ ...f, truckId }),
       (e) => !cancel && setError((e as Error).message),
     );
     return () => {

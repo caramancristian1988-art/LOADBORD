@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/ui/Time";
 import { FileText, Phone, Truck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -193,7 +194,7 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
                   )}
                   <td>
                     <StatusBadge status={r.status} />
-                    {r.history.length > 0 && <div className="mt-0.5 text-[11px] text-muted">{dateTime(r.history[r.history.length - 1].at)}</div>}
+                    {r.history.length > 0 && <div className="mt-0.5 text-[11px] text-muted"><Time value={r.history[r.history.length - 1].at} /></div>}
                   </td>
                   <td>
                     <div className="flex justify-end gap-1.5">

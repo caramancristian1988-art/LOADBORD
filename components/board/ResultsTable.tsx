@@ -1,19 +1,22 @@
 "use client";
 
+import { Time } from "@/components/ui/Time";
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Phone, RefreshCw, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
+import { createLocalStore, useLocalStore } from "@/lib/local-store";
 import { CreditBadge, EquipBadge, Empty, ErrorNote } from "@/components/ui";
 import { LoadDetailView } from "@/components/load/LoadDetailView";
-import { age, money, rpmFmt, shortDay } from "@/lib/format";
+import { money, rpmFmt, shortDay } from "@/lib/format";
 import { PAGE_SIZE, SORTS, type SortKey } from "@/lib/search-params";
 import type { LoadRow } from "@/lib/queries/loads";
 import type { LaneBand, LoadDetailJson } from "@/lib/client-types";
 import { api } from "@/lib/api-client";
 import { findCity } from "@/lib/sim/geo";
 
-const VIEWED_KEY = "ld.viewed";
+/** Loads this viewer has opened (blue "new" dot disappears). */
+const viewedStore = createLocalStore<string[]>("ld.viewed", []);
 
 function DetailSkeleton() {
   return (
@@ -63,15 +66,8 @@ export function ResultsTable({
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ load: LoadDetailJson; band: LaneBand } | null>(null);
   const [detailErr, setDetailErr] = useState<string | null>(null);
-  const [viewed, setViewed] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    try {
-      setViewed(new Set(JSON.parse(localStorage.getItem(VIEWED_KEY) ?? "[]")));
-    } catch {
-      /* storage unavailable */
-    }
-  }, []);
+  const viewedList = useLocalStore(viewedStore);
+  const viewed = useMemo(() => new Set(viewedList), [viewedList]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailErr(null);
@@ -86,16 +82,8 @@ export function ResultsTable({
     setSelected(id);
     setDetail(null);
     loadDetail(id);
-    setViewed((v) => {
-      const n = new Set(v);
-      n.add(id);
-      try {
-        localStorage.setItem(VIEWED_KEY, JSON.stringify([...n].slice(-800)));
-      } catch {
-        /* ignore */
-      }
-      return n;
-    });
+    const list = viewedStore.read();
+    if (!list.includes(id)) viewedStore.write([...list, id].slice(-800));
   }
 
   const hrefWith = (patch: Record<string, string | null>) => {
@@ -185,7 +173,7 @@ export function ResultsTable({
               {rows.map((r) => (
                 <tr key={r.id} data-selected={r.id === selected} className="cursor-pointer" onClick={() => openRow(r.id)}>
                   <td className="pr-0">{!viewed.has(r.id) && <span className="block h-2 w-2 rounded-full bg-primary" title="New" />}</td>
-                  <td className="tnum text-muted">{age(r.postedAt)}</td>
+                  <td className="tnum text-muted"><Time value={r.postedAt} format="age" /></td>
                   <td className="tnum text-right">
                     {r.rate != null ? (
                       <>

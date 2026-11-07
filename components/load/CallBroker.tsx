@@ -72,10 +72,11 @@ export function CallBroker({
 }) {
   const [phase, setPhase] = useState<"setup" | "dialing" | "live">("setup");
   const [channel, setChannel] = useState<"call" | "email">(initialChannel);
-  const [truckId, setTruckId] = useState<string>("");
+  // The modal is mounted fresh for each call, so state starts clean.
+  // null = not chosen → default to the first truck that can haul this load
+  const [chosenTruck, setTruckId] = useState<string | null>(null);
   const [neg, setNeg] = useState<Neg | null>(null);
   const [shown, setShown] = useState(0);
-  const [typing, setTyping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [offer, setOffer] = useState<string>("");
@@ -84,40 +85,20 @@ export function CallBroker({
   const scroller = useRef<HTMLDivElement>(null);
 
   const compatible = trucks.filter((t) => canHaul(t.equipment as EquipCode, load.equipment));
+  const truckId = chosenTruck ?? compatible[0]?.id ?? "";
 
-  useEffect(() => {
-    if (!open) return;
-    setPhase("setup");
-    setChannel(initialChannel);
-    setNeg(null);
-    setShown(0);
-    setError(null);
-    setOffer("");
-    setText("");
-    setSeconds(0);
-    setTruckId((prev) => prev || compatible[0]?.id || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, load.id]);
+  // the next message waiting to be revealed; a broker line shows a "typing" bubble first
+  const pendingMsg = neg && shown < neg.messages.length ? neg.messages[shown] : null;
+  const typing = pendingMsg?.from === "broker";
 
-  // reveal messages one at a time, with a "typing" pause before each broker line
+  // reveal messages one at a time
   useEffect(() => {
-    if (!neg || shown >= neg.messages.length) {
-      setTyping(false);
-      return;
-    }
-    const next = neg.messages[shown];
-    if (next.from !== "broker") {
-      const t = setTimeout(() => setShown((s) => s + 1), next.from === "system" ? 350 : 120);
-      return () => clearTimeout(t);
-    }
-    setTyping(true);
-    const base = Math.min(2400, 650 + next.text.length * 14);
-    const t = setTimeout(() => {
-      setTyping(false);
-      setShown((s) => s + 1);
-    }, channel === "email" ? base * 1.5 : base);
+    if (!pendingMsg) return;
+    const base = Math.min(2400, 650 + pendingMsg.text.length * 14);
+    const delay = pendingMsg.from === "broker" ? (channel === "email" ? base * 1.5 : base) : pendingMsg.from === "system" ? 350 : 120;
+    const t = setTimeout(() => setShown((s) => s + 1), delay);
     return () => clearTimeout(t);
-  }, [neg, shown, channel]);
+  }, [pendingMsg, channel]);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });

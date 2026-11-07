@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/ui/Time";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ErrorNote, Field, Modal } from "@/components/ui";
@@ -110,7 +111,7 @@ export function SettingsForm({ initial, stats }: { initial: S; stats: { loads: n
       <div className="card p-5">
         <h2 className="mb-1 font-bold">Simulated market</h2>
         <p className="text-[13px] text-muted">
-          {stats.loads.toLocaleString("en-US")} loads from {stats.brokers} brokers. Generated {dateTime(v.marketSeededAt)}; new loads post automatically while you work (last update {dateTime(v.lastTopUpAt)}).
+          {stats.loads.toLocaleString("en-US")} loads from {stats.brokers} brokers. Generated <Time value={v.marketSeededAt} />; new loads post automatically while you work (last update <Time value={v.lastTopUpAt} />).
         </p>
         <div className="mt-4 flex gap-2">
           <button className="btn btn-outline" onClick={() => setReset({ keepFleet: true })}>

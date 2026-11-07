@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/ui/Time";
 import { CheckCircle2, ChevronDown, Flag, GraduationCap, Lightbulb, Play, Search, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -132,7 +133,7 @@ export function TrainingPanel({ data }: { data: { active: Attempt | null; histor
         <div className="card overflow-hidden border-[#d9c7f7]">
           <div className="flex items-center gap-2 bg-[#f4effd] px-5 py-2.5 text-[12px] font-bold tracking-wide text-[#3b1d78] uppercase">
             <GraduationCap size={15} /> Active scenario · {DIFFICULTY_LABEL[active.difficulty]}
-            <span className="ml-auto font-normal normal-case">started {dateTime(active.startedAt)}</span>
+            <span className="ml-auto font-normal normal-case">started <Time value={active.startedAt} /></span>
           </div>
           <div className="grid grid-cols-[1fr_300px] gap-6 p-5">
             <div>
@@ -235,7 +236,7 @@ export function TrainingPanel({ data }: { data: { active: Attempt | null; histor
                         {h.load.ref} · {h.load.originCity} → {h.load.destCity}
                       </div>
                     )}
-                    {dateTime(h.completedAt ?? h.startedAt)}
+                    <Time value={h.completedAt ?? h.startedAt} />
                   </div>
                   <ChevronDown size={16} className={`text-muted transition-transform ${open === h.id ? "rotate-180" : ""}`} />
                 </button>
