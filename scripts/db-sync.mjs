@@ -1,5 +1,6 @@
 // Runs during `npm run build`: syncs collections/indexes to the configured MongoDB
 // (e.g. Atlas on Vercel). Skipped for the local dev database or when DATABASE_URL is missing.
+// A failed sync never blocks the deploy — indexes only need to be created once.
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 
@@ -13,8 +14,11 @@ if (/127\.0\.0\.1|localhost/.test(url)) {
   process.exit(0);
 }
 const require = createRequire(import.meta.url);
-const r = spawnSync(process.execPath, [require.resolve("prisma/build/index.js"), "db", "push", "--skip-generate"], { stdio: "inherit" });
+const r = spawnSync(process.execPath, [require.resolve("prisma/build/index.js"), "db", "push", "--skip-generate"], { stdio: "inherit", timeout: 90_000 });
 if (r.status !== 0) {
-  console.error("[db-sync] prisma db push failed — check DATABASE_URL and that your Atlas cluster allows connections from this host (Network Access → 0.0.0.0/0 for Vercel).");
-  process.exit(r.status ?? 1);
+  console.warn(
+    "[db-sync] WARNING: could not sync indexes — continuing the build.\n" +
+      "  If you see 'received fatal alert' / 'Server selection timeout': in MongoDB Atlas open Network Access and allow 0.0.0.0/0 (Vercel has no fixed IPs).\n" +
+      "  If you see P1013: DATABASE_URL is malformed.",
+  );
 }
