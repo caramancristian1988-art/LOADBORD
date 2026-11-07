@@ -1,0 +1,336 @@
+// LoadDesk — dispatcher training load board.
+// MongoDB via Prisma 6 (Prisma 7 does not support MongoDB yet).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Equipment {
+  F  // Flatbed
+  SD // Step Deck
+  CN // Conestoga
+  HS // Hotshot
+  V  // Dry Van
+  R  // Reefer
+  PO // Power Only
+  BT // Box Truck
+}
+
+enum LoadStatus {
+  AVAILABLE
+  NEGOTIATING
+  BOOKED
+  DISPATCHED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  COVERED // taken by another (simulated) carrier
+}
+
+enum LoadSize {
+  FULL
+  PARTIAL
+}
+
+enum Personality {
+  corporate
+  flexible
+  friendly
+  lowballer
+  firm
+  hustler
+}
+
+type BrokerContact {
+  name  String
+  phone String
+  ext   String?
+  email String
+}
+
+model Broker {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  name        String          @unique
+  mc          String
+  dot         String
+  hqCity      String
+  hqState     String
+  address     String
+  zip         String
+  phone       String
+  email       String
+  creditScore Int
+  daysToPay   Int
+  yearsInBiz  Int
+  quickPayPct Float
+  personality Personality
+  contacts    BrokerContact[]
+  loads       Load[]
+}
+
+type Stop {
+  facility String
+  address  String
+  city     String
+  state    String
+  zip      String
+  lat      Float
+  lng      Float
+  date     DateTime // appointment day (UTC midnight of local date)
+  windowStart String // "07:00"
+  windowEnd   String // "15:00"
+  appointment Boolean // true = by appointment, false = FCFS window
+  contact  String
+  phone    String
+}
+
+type Cargo {
+  lengthFt  Float
+  widthIn   Float
+  heightIn  Float
+  pieces    Int
+  tarps     Boolean
+  tarpSize  String?
+  chains    Boolean
+  straps    Boolean
+  oversize  Boolean
+  permit    Boolean
+  temp      String?
+  hazmat    Boolean
+}
+
+type StatusEvent {
+  status LoadStatus
+  at     DateTime
+  note   String?
+}
+
+model Load {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  ref           String        @unique // "LD-104523"
+  status        LoadStatus    @default(AVAILABLE)
+  postedAt      DateTime
+
+  // flattened lane fields — these are what the board searches/indexes on
+  originCity    String
+  originState   String
+  originLat     Float
+  originLng     Float
+  destCity      String
+  destState     String
+  destLat       Float
+  destLng       Float
+  pickupDate    DateTime
+  deliveryDate  DateTime
+
+  pickup        Stop
+  delivery      Stop
+
+  miles         Int
+  deadhead      Int           // default deadhead shown when no search origin is given
+  equipment     Equipment
+  size          LoadSize
+  weight        Int
+  lengthFt      Int
+  commodity     String
+  cargo         Cargo
+
+  rate          Int?          // null = "call for rate"
+  rpm           Float?
+  marketRate    Int           // fair market rate for this lane/equipment (training reference)
+  brokerCeiling Int           // hidden: most the broker will pay
+
+  brokerId      String        @db.ObjectId
+  broker        Broker        @relation(fields: [brokerId], references: [id])
+  brokerName    String
+  contact       BrokerContact
+  instructions  String[]
+  notes         String?
+
+  // dispatch side (set once booked by the user)
+  bookedRate    Int?
+  bookedAt      DateTime?
+  rateConNo     String?
+  truckId       String?       @db.ObjectId
+  truck         Truck?        @relation(fields: [truckId], references: [id])
+  driverId      String?       @db.ObjectId
+  driver        Driver?       @relation(fields: [driverId], references: [id])
+  bookedDeadhead Int?
+  deliveredAt   DateTime?
+  history       StatusEvent[]
+
+  negotiations  Negotiation[]
+  trainingAttempts TrainingAttempt[]
+
+  @@index([status, pickupDate])
+  @@index([status, equipment, pickupDate])
+  @@index([originState, originCity])
+  @@index([destState, destCity])
+  @@index([originLat, originLng])
+  @@index([destLat, destLng])
+  @@index([postedAt])
+  @@index([rate])
+  @@index([rpm])
+  @@index([miles])
+  @@index([brokerName])
+}
+
+model Driver {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  phone     String
+  email     String?
+  cdlState  String
+  hosHoursLeft Float  @default(70)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  trucks    Truck[]
+  loads     Load[]
+}
+
+enum TruckStatus {
+  AVAILABLE
+  ON_LOAD
+  OUT_OF_SERVICE
+}
+
+model Truck {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  number        String      @unique
+  equipment     Equipment
+  trailerLength Int
+  maxWeight     Int
+  city          String
+  state         String
+  lat           Float
+  lng           Float
+  status        TruckStatus @default(AVAILABLE)
+  availableDate DateTime
+  notes         String?
+  driverId      String?     @db.ObjectId
+  driver        Driver?     @relation(fields: [driverId], references: [id])
+  createdAt     DateTime    @default(now())
+  loads         Load[]
+}
+
+enum NegotiationStatus {
+  OPEN
+  ON_HOLD   // broker is "checking with the customer"
+  AGREED
+  LOST      // broker walked / load covered by someone else
+  CLOSED    // dispatcher hung up
+}
+
+type ChatMessage {
+  from   String  // "broker" | "dispatcher" | "system"
+  text   String
+  offer  Int?
+  at     DateTime
+}
+
+model Negotiation {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  loadId       String            @db.ObjectId
+  load         Load              @relation(fields: [loadId], references: [id])
+  channel      String            // "call" | "email"
+  status       NegotiationStatus @default(OPEN)
+  postedRate   Int               // rate (or broker's opening number when posted without rate)
+  brokerOffer  Int               // broker's current number
+  lastAsk      Int?              // dispatcher's last offer
+  ceiling      Int               // hidden max
+  patience     Int               // remaining rounds before the broker walks
+  rounds       Int               @default(0)
+  agreedRate   Int?
+  truckId      String?           @db.ObjectId
+  flags        String[]          // "final", "checked", "pressure", "far" ...
+  messages     ChatMessage[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([loadId, createdAt])
+  @@index([status])
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum AttemptStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+type ScenarioCriteria {
+  equipment     Equipment[]
+  startCity     String?
+  startState    String?
+  startLat      Float?
+  startLng      Float?
+  maxDeadhead   Int?
+  destCity      String?
+  destState     String?
+  destLat       Float?
+  destLng       Float?
+  destRadius    Int?
+  minRpm        Float?
+  minNegotiationGain Int?
+  maxWeight     Int?
+  pickupBy      DateTime?
+}
+
+type CheckResult {
+  key    String
+  label  String
+  passed Boolean
+  detail String
+  points Int
+  max    Int
+}
+
+model TrainingAttempt {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  scenarioKey String
+  title       String
+  brief       String
+  difficulty  Difficulty
+  status      AttemptStatus    @default(ACTIVE)
+  criteria    ScenarioCriteria
+  hints       String[]
+  loadId      String?          @db.ObjectId
+  load        Load?            @relation(fields: [loadId], references: [id])
+  score       Int?
+  checks      CheckResult[]
+  summary     String?
+  startedAt   DateTime         @default(now())
+  completedAt DateTime?
+
+  @@index([status, startedAt])
+}
+
+model Settings {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  key           String   @unique @default("app")
+  carrierName   String
+  carrierMc     String
+  carrierDot    String
+  carrierAddress String
+  carrierCity   String
+  carrierState  String
+  carrierZip    String
+  carrierPhone  String
+  carrierEmail  String
+  dispatcherName String
+  costPerMile   Float    // operating cost used for profit checks
+  targetRpm     Float    // dispatcher's own "good RPM" goal
+  marketSeededAt DateTime?
+  lastTopUpAt   DateTime?
+  loadSeq       Int      @default(104000)
+}
