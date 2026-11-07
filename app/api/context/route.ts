@@ -1,8 +1,11 @@
+import { connection } from "next/server";
 import { handle } from "@/lib/route";
 import { prisma } from "@/lib/db";
 
 /** Everything the load actions (call / book / training) need on the client. */
 export async function GET() {
+  // live data: never prerender at build time
+  await connection();
   return handle(async () => {
     const [trucks, drivers, settings, attempt] = await Promise.all([
       prisma.truck.findMany({ include: { driver: { select: { id: true, name: true, phone: true } } }, orderBy: { number: "asc" } }),

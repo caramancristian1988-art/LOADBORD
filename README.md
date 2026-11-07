@@ -41,6 +41,19 @@ Open http://localhost:3000 (use `npm run dev -- -p 3100` for another port). The 
 first visit. To regenerate it manually: `npm run db:seed`, or **Settings → Reset market** in the app.
 
 To use MongoDB Atlas instead of the local database, set `DATABASE_URL` in `.env` and run `npm run db:push` once.
+The local database keeps its files in `~/.loaddesk/mongo-data` (outside the project, so the dev file watcher ignores it).
+Don't run `next build` while `next dev` is running in the same folder.
+
+## Deploy to Vercel
+
+The bundled local MongoDB only works on your machine — production needs MongoDB Atlas (the free M0 tier is enough).
+
+1. In [MongoDB Atlas](https://cloud.mongodb.com) create a free cluster, a database user, and under **Network Access**
+   allow `0.0.0.0/0` (Vercel has no fixed IPs).
+2. Copy the connection string (Connect → Drivers) and add the database name, e.g.
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/loadboard?retryWrites=true&w=majority`.
+3. In Vercel → Project → **Settings → Environment Variables** add `DATABASE_URL` with that value (Production + Preview).
+4. Redeploy. The build syncs the indexes (`scripts/db-sync.mjs`); the market is generated on the first page visit.
 
 | Script | What it does |
 | --- | --- |

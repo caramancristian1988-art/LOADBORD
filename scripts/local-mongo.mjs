@@ -7,6 +7,7 @@
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import net from "node:net";
 
 export const LOCAL_PORT = 27027;
@@ -26,13 +27,14 @@ export async function startLocalMongo() {
     console.log(`[mongo] already running on :${LOCAL_PORT}`);
     return null;
   }
-  const dbPath = path.resolve(".mongo-data");
+  // Keep data OUTSIDE the project: writes inside it trigger the dev file watcher (endless reloads).
+  const dbPath = process.env.LOCAL_MONGO_DIR || path.join(os.homedir(), ".loaddesk", "mongo-data");
   mkdirSync(dbPath, { recursive: true });
   const rs = await MongoMemoryReplSet.create({
     replSet: { name: "rs0", count: 1, storageEngine: "wiredTiger" },
     instanceOpts: [{ port: LOCAL_PORT, dbPath }],
   });
-  console.log(`[mongo] local replica set ready on :${LOCAL_PORT} (data: .mongo-data)`);
+  console.log(`[mongo] local replica set ready on :${LOCAL_PORT} (data: ${dbPath})`);
   return async () => { await rs.stop({ doCleanup: false }); };
 }
 

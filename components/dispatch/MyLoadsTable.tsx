@@ -73,6 +73,8 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
   const lane = (r: Row) => `${r.originCity}, ${r.originState} → ${r.destCity}, ${r.destState}`;
   const showDispatch = ["BOOKED", "DISPATCHED", "IN_TRANSIT", "DELIVERED", "CANCELLED"].includes(tab);
 
+  // keep modals mounted even when the list empties (e.g. right after booking the last negotiating load)
+  let emptyState: React.ReactNode = null;
   if (!rows.length) {
     const text: Record<MyTab, string> = {
       AVAILABLE: "Loads you called about but didn't book show up here while they're still on the board.",
@@ -83,7 +85,7 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
       DELIVERED: "Delivered loads land here and count toward revenue.",
       CANCELLED: "Cancelled loads are kept here for your records.",
     };
-    return (
+    emptyState = (
       <div className="card">
         <Empty title="Nothing here yet" icon={<Truck size={36} />}>
           {text[tab]}{" "}
@@ -98,12 +100,13 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
   return (
     <div className="flex flex-col gap-3">
       <ErrorNote>{error}</ErrorNote>
-      {showDispatch && totalRevenue > 0 && (
+      {emptyState}
+      {!emptyState && showDispatch && totalRevenue > 0 && (
         <div className="text-[13px] text-muted">
           {rows.length} load{rows.length > 1 ? "s" : ""} · <b className="text-ink">{money(totalRevenue)}</b> revenue
         </div>
       )}
-      <div className="card overflow-x-auto">
+      {!emptyState && <div className="card overflow-x-auto">
         <table className="dt">
           <thead>
             <tr>
@@ -251,7 +254,7 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {call && (
         <CallBroker

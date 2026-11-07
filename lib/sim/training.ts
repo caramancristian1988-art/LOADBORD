@@ -375,15 +375,33 @@ export function evaluate(i: EvalInput): { score: number; checks: Check[]; summar
 
   const max = checks.reduce((a, b) => a + b.max, 0);
   const got = checks.reduce((a, b) => a + b.points, 0);
-  const score = Math.round((got / max) * 100);
+  let score = Math.round((got / max) * 100);
   const passed = checks.filter((x) => x.passed).length;
-  const summary =
-    score >= 85
+  // missing the scenario's main objective caps the grade
+  const primaryKey = PRIMARY[i.scenarioKey];
+  const primary = checks.find((x) => x.key === primaryKey);
+  const missedPrimary = primary && !primary.passed;
+  if (missedPrimary) score = Math.min(score, 70);
+  const summary = missedPrimary
+    ? `Main objective missed (${primary.label.toLowerCase()}) — grade capped at 70. ${passed}/${checks.length} checks passed.`
+    : score >= 85
       ? `Excellent dispatching — ${passed}/${checks.length} checks passed.`
       : score >= 65
         ? `Solid, with room to improve — ${passed}/${checks.length} checks passed.`
         : `Needs work — ${passed}/${checks.length} checks passed. Review the feedback below.`;
   return { score, checks, summary };
 }
+
+/** The check that represents each scenario's main objective. */
+const PRIMARY: Record<string, string> = {
+  "lane-direction": "suitable",
+  "nearby-book": "rate",
+  "min-rpm": "rpm",
+  "negotiate-gain": "negotiation",
+  "deadhead-profit": "verdict",
+  "hotshot-weight": "suitable",
+  oversize: "negotiation",
+  reload: "rpm",
+};
 
 export const DIFFICULTY_LABEL: Record<DifficultyKey, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
