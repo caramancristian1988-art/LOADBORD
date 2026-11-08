@@ -130,12 +130,12 @@ export function TrainingPanel({ data }: { data: { active: Attempt | null; histor
       <ErrorNote>{error}</ErrorNote>
 
       {active && (
-        <div className="card overflow-hidden border-[#d9c7f7]">
-          <div className="flex items-center gap-2 bg-[#f4effd] px-5 py-2.5 text-[12px] font-bold tracking-wide text-[#3b1d78] uppercase">
+        <div className="card overflow-hidden border-violet-line">
+          <div className="flex items-center gap-2 bg-violet-50 px-5 py-2.5 text-[12px] font-bold tracking-wide text-violet-ink uppercase">
             <GraduationCap size={15} /> Active scenario · {DIFFICULTY_LABEL[active.difficulty]}
             <span className="ml-auto font-normal normal-case">started <Time value={active.startedAt} /></span>
           </div>
-          <div className="grid grid-cols-[1fr_300px] gap-6 p-5">
+          <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[1fr_300px] md:gap-6 md:p-5">
             <div>
               <div className="text-[17px] font-bold">{active.title}</div>
               <p className="mt-1 text-[14px] leading-relaxed">{active.brief}</p>
@@ -179,7 +179,7 @@ export function TrainingPanel({ data }: { data: { active: Attempt | null; histor
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {LEVELS.map((lvl) => (
           <div key={lvl.key} className="card flex flex-col p-4">
             <div className="flex items-center gap-2">
@@ -241,9 +241,9 @@ export function TrainingPanel({ data }: { data: { active: Attempt | null; histor
                   <ChevronDown size={16} className={`text-muted transition-transform ${open === h.id ? "rotate-180" : ""}`} />
                 </button>
                 {open === h.id && h.checks.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 bg-surface/60 px-4 pt-1 pb-4">
+                  <div className="grid grid-cols-1 gap-2 bg-surface/60 px-4 pt-1 pb-4 md:grid-cols-2">
                     {h.checks.map((c) => (
-                      <div key={c.key} className="flex gap-2.5 rounded-md border border-line bg-white p-3">
+                      <div key={c.key} className="flex gap-2.5 rounded-md border border-line bg-panel p-3">
                         {c.passed ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-good" /> : <XCircle size={18} className="mt-0.5 shrink-0 text-bad" />}
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between text-[13px] font-bold">

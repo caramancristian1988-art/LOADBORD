@@ -57,7 +57,7 @@ function ActiveSettings() {
 
 export function Sidebar({ footer }: { footer: ReactNode }) {
   return (
-    <aside className="flex w-[200px] shrink-0 flex-col bg-sidebar text-sidebar-text">
+    <aside className="hidden w-[200px] shrink-0 flex-col bg-sidebar text-sidebar-text md:flex">
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-5">
         <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-[15px] font-bold tracking-tight text-white">LD</span>
         <span className="leading-tight">

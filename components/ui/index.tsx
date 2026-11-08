@@ -33,9 +33,18 @@ export function Modal({
   }, [open, onClose, dismissable]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[#0b1626]/45 p-6 pt-[6vh]" onMouseDown={(e) => dismissable && e.target === e.currentTarget && onClose()}>
-      <div className="pop flex max-h-[88vh] w-full flex-col rounded-lg bg-white shadow-2xl" style={{ maxWidth: width }} role="dialog" aria-modal>
-        <div className="flex items-start gap-3 border-b border-line px-5 py-3.5">
+    <div
+      className="fixed inset-0 z-[1000] flex items-stretch justify-center bg-overlay md:items-start md:overflow-y-auto md:p-6 md:pt-[6vh]"
+      onMouseDown={(e) => dismissable && e.target === e.currentTarget && onClose()}
+    >
+      {/* phones: full screen sheet · desktop: centered dialog */}
+      <div
+        className="pop flex h-full w-full flex-col bg-panel shadow-2xl md:h-auto md:max-h-[88vh] md:max-w-[var(--modal-w)] md:rounded-lg"
+        style={{ "--modal-w": `${width}px` } as React.CSSProperties}
+        role="dialog"
+        aria-modal
+      >
+        <div className="flex items-start gap-3 border-b border-line px-4 py-3.5 md:px-5">
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-bold">{title}</h2>
             {subtitle && <div className="mt-0.5 text-xs text-muted">{subtitle}</div>}
@@ -46,22 +55,22 @@ export function Modal({
             </button>
           )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">{children}</div>
+        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] md:px-5">{footer}</div>}
       </div>
     </div>
   );
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  AVAILABLE: "bg-[#eef1f5] text-ink-2",
+  AVAILABLE: "bg-chip text-ink-2",
   NEGOTIATING: "bg-warn-50 text-warn",
   BOOKED: "bg-primary-50 text-primary",
-  DISPATCHED: "bg-[#ede7fb] text-violet",
-  IN_TRANSIT: "bg-[#e0f2fe] text-[#0369a1]",
+  DISPATCHED: "bg-violet-50 text-violet",
+  IN_TRANSIT: "bg-info-50 text-info",
   DELIVERED: "bg-good-50 text-good",
   CANCELLED: "bg-bad-50 text-bad",
-  COVERED: "bg-[#eef1f5] text-faint",
+  COVERED: "bg-chip text-faint",
   AVAILABLE_TRUCK: "bg-good-50 text-good",
   ON_LOAD: "bg-primary-50 text-primary",
   OUT_OF_SERVICE: "bg-bad-50 text-bad",
@@ -121,12 +130,12 @@ export function Empty({ title, children, icon }: { title: string; children?: Rea
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <div className="rounded border border-[#f1c4c4] bg-bad-50 px-3 py-2 text-[13px] text-bad">{children}</div>;
+  return <div className="rounded border border-bad-line bg-bad-50 px-3 py-2 text-[13px] text-bad">{children}</div>;
 }
 
 export function WarnNote({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <div className="rounded border border-[#f2d7ad] bg-warn-50 px-3 py-2 text-[13px] text-warn">{children}</div>;
+  return <div className="rounded border border-warn-line bg-warn-50 px-3 py-2 text-[13px] text-warn">{children}</div>;
 }
 
 export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {

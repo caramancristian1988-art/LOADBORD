@@ -80,7 +80,7 @@ export function SettingsForm({ initial, stats }: { initial: S; stats: { loads: n
     <div className="flex flex-col gap-5">
       <form onSubmit={save} className="card p-5">
         <h2 className="mb-4 font-bold">Carrier profile</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {FIELDS.map((f) => (
             <Field key={f.k} label={f.label} className={f.span === 2 ? "col-span-2" : ""}>
               <input className="input" value={String(v[f.k] ?? "")} onChange={(e) => setV({ ...v, [f.k]: e.target.value })} />
@@ -88,7 +88,7 @@ export function SettingsForm({ initial, stats }: { initial: S; stats: { loads: n
           ))}
         </div>
         <h2 className="mt-6 mb-4 font-bold">Economics</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Field label="Operating cost ($/mile)">
             <input className="input" type="number" step="0.01" value={v.costPerMile} onChange={(e) => setV({ ...v, costPerMile: Number(e.target.value) })} />
           </Field>

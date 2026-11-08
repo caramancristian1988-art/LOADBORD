@@ -22,7 +22,7 @@ async function Fleet() {
 
 export default function TrucksPage() {
   return (
-    <div className="p-5">
+    <div className="p-3 md:p-5">
       <div className="mb-4">
         <h1 className="text-[20px] font-bold">My Trucks</h1>
         <p className="text-[13px] text-muted">Your fleet and drivers. Keep locations and availability current — they drive deadhead, broker reactions and booking checks.</p>

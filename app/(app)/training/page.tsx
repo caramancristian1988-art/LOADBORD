@@ -22,7 +22,7 @@ async function Content() {
 
 export default function TrainingPage() {
   return (
-    <div className="mx-auto w-full max-w-[1200px] p-5">
+    <div className="mx-auto w-full max-w-[1200px] p-3 md:p-5">
       <div className="mb-4">
         <h1 className="text-[20px] font-bold">Training mode</h1>
         <p className="text-[13px] text-muted">
@@ -31,7 +31,7 @@ export default function TrainingPage() {
       </div>
       <Suspense
         fallback={
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <div key={i} className="skeleton h-48" />
             ))}

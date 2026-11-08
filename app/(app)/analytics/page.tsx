@@ -15,14 +15,14 @@ function Bars<T extends { key: string }>({ rows, value, label, format, color = "
     <div className="space-y-2">
       {rows.map((r, i) => (
         <div key={r.key} className="flex items-center gap-3 text-[13px]">
-          <span className="w-44 shrink-0 truncate" title={r.key}>
+          <span className="w-24 shrink-0 truncate sm:w-44" title={r.key}>
             {r.key}
           </span>
           <span className="relative h-3 flex-1 rounded bg-surface">
             <span className="absolute inset-y-0 left-0 rounded" style={{ width: `${(vals[i] / max) * 100}%`, background: color }} />
           </span>
-          <span className="tnum w-24 text-right font-medium">{format(vals[i])}</span>
-          <span className="tnum w-36 text-right text-[12px] text-muted">{label(r)}</span>
+          <span className="tnum w-20 shrink-0 text-right font-medium sm:w-24">{format(vals[i])}</span>
+          <span className="tnum hidden w-36 text-right text-[12px] text-muted sm:block">{label(r)}</span>
         </div>
       ))}
     </div>
@@ -67,7 +67,7 @@ async function Content() {
   const t = a.totals;
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total booked loads" value={t.bookedLoads} sub={`${t.deliveredLoads} delivered`} />
         <Stat label="Total revenue" value={money(t.revenue)} sub={`${money(t.deliveredRevenue)} delivered`} />
         <Stat label="Average rate per mile" value={rpmFmt(t.avgRpm)} sub={`all-in ${rpmFmt(t.allInRpm)} incl. deadhead`} />
@@ -83,7 +83,7 @@ async function Content() {
         <DayChart days={a.days} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="card p-4">
           <h2 className="mb-3 font-bold">Revenue by truck / driver</h2>
           <Bars rows={a.byTruck} value={(r: Analytics["byTruck"][number]) => r.revenue} format={(n) => money(n)} label={(r: Analytics["byTruck"][number]) => `${r.loads} loads · ${rpmFmt(r.rpm)}/mi`} />
@@ -98,7 +98,7 @@ async function Content() {
         </div>
         <div className="card p-4">
           <h2 className="mb-3 font-bold">Negotiation & training</h2>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">
             {[
               ["Broker contacts", `${a.negotiation.total} (${a.negotiation.calls} calls, ${a.negotiation.emails} emails)`],
               ["Deals closed", a.negotiation.won],
@@ -123,14 +123,14 @@ async function Content() {
 
 export default function AnalyticsPage() {
   return (
-    <div className="p-5">
+    <div className="p-3 md:p-5">
       <div className="mb-4">
         <h1 className="text-[20px] font-bold">Analytics</h1>
         <p className="text-[13px] text-muted">How your dispatching is performing: revenue, RPM, empty miles and negotiation results.</p>
       </div>
       <Suspense
         fallback={
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: 8 }, (_, i) => (
               <div key={i} className="skeleton h-[88px]" />
             ))}

@@ -10,7 +10,7 @@ import { CallBroker } from "@/components/load/CallBroker";
 import { BookLoad } from "@/components/load/BookLoad";
 import { useLoadContext } from "@/components/load/useLoadContext";
 import { api } from "@/lib/api-client";
-import { money, rpmFmt, shortDay, dateTime } from "@/lib/format";
+import { money, rpmFmt, shortDay } from "@/lib/format";
 import type { Jsonify } from "@/lib/client-types";
 import type { MyLoadRow } from "@/lib/queries/my-loads";
 import type { MyTab } from "@/lib/queries/my-loads";
@@ -98,6 +98,65 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
     );
   }
 
+  function actionButtons(r: Row) {
+    const next = NEXT_ACTION[r.status];
+    const agreed = r.negotiation?.status === "AGREED" ? r.negotiation.agreedRate : null;
+    return (
+      <>
+        {(r.status === "NEGOTIATING" || r.status === "AVAILABLE") && (
+          <>
+            {r.negotiation?.status !== "AGREED" && (
+              <button className="btn btn-outline btn-sm" onClick={() => setCall(r)}>
+                <Phone size={13} /> {r.status === "AVAILABLE" ? "Call back" : "Continue"}
+              </button>
+            )}
+            <button className="btn btn-primary btn-sm" disabled={agreed == null && r.rate == null} onClick={() => setBook({ row: r, rate: agreed })}>
+              Book{agreed ? ` ${money(agreed)}` : ""}
+            </button>
+            {r.status === "NEGOTIATING" && (
+              <button className="btn btn-danger btn-sm" disabled={busy === r.id} onClick={() => setStatus(r, "AVAILABLE", "Dropped by dispatcher")}>
+                Drop
+              </button>
+            )}
+          </>
+        )}
+        {(r.status === "BOOKED" || r.status === "DISPATCHED") && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setAssign(r);
+              setAssignTruck(r.truckId ?? "");
+              setAssignDriver(r.driverId ?? "");
+            }}
+          >
+            <Truck size={13} /> Assign
+          </button>
+        )}
+        {next && (
+          <button className={`btn btn-sm ${next.cls}`} disabled={busy === r.id} onClick={() => setStatus(r, next.to)}>
+            {next.label}
+          </button>
+        )}
+        {r.rateConNo && (
+          <a className="btn btn-ghost btn-sm" href={`/api/loads/${r.id}/ratecon`} target="_blank" rel="noreferrer" title="Rate confirmation">
+            <FileText size={14} />
+          </a>
+        )}
+        {(r.status === "BOOKED" || r.status === "DISPATCHED") && (
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={() => {
+              setCancel(r);
+              setCancelNote("");
+            }}
+          >
+            Cancel
+          </button>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <ErrorNote>{error}</ErrorNote>
@@ -107,7 +166,46 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
           {rows.length} load{rows.length > 1 ? "s" : ""} · <b className="text-ink">{money(totalRevenue)}</b> revenue
         </div>
       )}
-      {!emptyState && <div className="card overflow-x-auto">
+      {/* phones: one card per load */}
+      {!emptyState && (
+        <div className="flex flex-col gap-3 md:hidden">
+          {rows.map((r) => {
+            const rate = r.bookedRate ?? r.negotiation?.agreedRate ?? r.rate;
+            return (
+              <div key={r.id} className="card p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <Link href={`/loads/${r.id}`} className="font-mono text-[13px] font-medium text-primary">
+                    {r.ref}
+                  </Link>
+                  <StatusBadge status={r.status} />
+                </div>
+                <div className="mt-2 text-[15px] font-bold">
+                  {r.originCity}, {r.originState} → {r.destCity}, {r.destState}
+                </div>
+                <div className="mt-0.5 text-[12.5px] text-muted">
+                  {r.equipment} · {r.miles} mi · PU {shortDay(r.pickupDate)} · DEL {shortDay(r.deliveryDate)}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-md bg-surface px-2 py-1.5">
+                    <div className="label">Rate</div>
+                    <div className="tnum font-bold">{rate != null ? money(rate) : "—"}</div>
+                  </div>
+                  <div className="rounded-md bg-surface px-2 py-1.5">
+                    <div className="label">{showDispatch ? "Truck" : "Broker at"}</div>
+                    <div className="tnum truncate font-bold">{showDispatch ? (r.truck ? `#${r.truck.number}` : "—") : r.negotiation ? money(r.negotiation.agreedRate ?? r.negotiation.brokerOffer) : "—"}</div>
+                  </div>
+                </div>
+                <div className="mt-2 truncate text-[12.5px] text-muted">
+                  {r.brokerName}
+                  {showDispatch && r.driver ? ` · ${r.driver.name}` : ""}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 [&>*]:h-9 [&>*]:flex-1">{actionButtons(r)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {!emptyState && <div className="card hidden overflow-x-auto md:block">
         <table className="dt">
           <thead>
             <tr>
@@ -125,8 +223,6 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
           <tbody>
             {rows.map((r) => {
               const rate = r.bookedRate ?? r.negotiation?.agreedRate ?? r.rate;
-              const next = NEXT_ACTION[r.status];
-              const agreed = r.negotiation?.status === "AGREED" ? r.negotiation.agreedRate : null;
               return (
                 <tr key={r.id}>
                   <td>
@@ -197,58 +293,7 @@ export function MyLoadsTable({ tab, rows, totalRevenue }: { tab: MyTab; rows: Ro
                     {r.history.length > 0 && <div className="mt-0.5 text-[11px] text-muted"><Time value={r.history[r.history.length - 1].at} /></div>}
                   </td>
                   <td>
-                    <div className="flex justify-end gap-1.5">
-                      {(r.status === "NEGOTIATING" || r.status === "AVAILABLE") && (
-                        <>
-                          {r.negotiation?.status !== "AGREED" && (
-                            <button className="btn btn-outline btn-sm" onClick={() => setCall(r)}>
-                              <Phone size={13} /> {r.status === "AVAILABLE" ? "Call back" : "Continue"}
-                            </button>
-                          )}
-                          <button className="btn btn-primary btn-sm" disabled={agreed == null && r.rate == null} onClick={() => setBook({ row: r, rate: agreed })}>
-                            Book{agreed ? ` ${money(agreed)}` : ""}
-                          </button>
-                          {r.status === "NEGOTIATING" && (
-                            <button className="btn btn-danger btn-sm" disabled={busy === r.id} onClick={() => setStatus(r, "AVAILABLE", "Dropped by dispatcher")}>
-                              Drop
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {(r.status === "BOOKED" || r.status === "DISPATCHED") && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            setAssign(r);
-                            setAssignTruck(r.truckId ?? "");
-                            setAssignDriver(r.driverId ?? "");
-                          }}
-                        >
-                          <Truck size={13} /> Assign
-                        </button>
-                      )}
-                      {next && (
-                        <button className={`btn btn-sm ${next.cls}`} disabled={busy === r.id} onClick={() => setStatus(r, next.to)}>
-                          {next.label}
-                        </button>
-                      )}
-                      {r.rateConNo && (
-                        <a className="btn btn-ghost btn-sm" href={`/api/loads/${r.id}/ratecon`} target="_blank" rel="noreferrer" title="Rate confirmation">
-                          <FileText size={14} />
-                        </a>
-                      )}
-                      {(r.status === "BOOKED" || r.status === "DISPATCHED") && (
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => {
-                            setCancel(r);
-                            setCancelNote("");
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
+                    <div className="flex justify-end gap-1.5">{actionButtons(r)}</div>
                   </td>
                 </tr>
               );

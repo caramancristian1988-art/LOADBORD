@@ -89,3 +89,47 @@ export function postedAndCeiling(rng: Rng, market: number, personality: Personal
   const ceiling = Math.max(posted + roundTo(rng.float(0, 75), 25), roundTo(market * rng.float(p.ceiling[0], p.ceiling[1]), 25));
   return { posted, ceiling };
 }
+
+function hashStr(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+export interface MarketQuote {
+  rate: number;
+  rpm: number;
+  low: number;
+  high: number;
+  companies: number;
+  reports: number;
+}
+
+/**
+ * Spot (3-day average) and contract (30-day) quotes for a lane, derived deterministically
+ * from the load's fair market rate — what a rate-view panel would show.
+ */
+export function laneQuotes(id: string, marketRate: number, miles: number): { spot: MarketQuote; contract: MarketQuote } {
+  const h = hashStr(id);
+  const f = (shift: number) => ((h >>> shift) & 0xff) / 255;
+  const mk = (base: number, spread: number, companies: number, reports: number): MarketQuote => {
+    const rate = Math.round(base);
+    return {
+      rate,
+      rpm: Math.round((rate / miles) * 100) / 100,
+      low: Math.round(rate * (1 - spread * (0.6 + f(3) * 0.4))),
+      high: Math.round(rate * (1 + spread * (0.6 + f(11) * 0.4))),
+      companies,
+      reports,
+    };
+  };
+  const spotCompanies = 3 + Math.floor(f(0) * 14);
+  const contractCompanies = 2 + Math.floor(f(8) * 9);
+  return {
+    spot: mk(marketRate * (0.96 + f(16) * 0.08), 0.07, spotCompanies, spotCompanies * 2 + Math.floor(f(20) * 9)),
+    contract: mk(marketRate * (1.05 + f(24) * 0.1), 0.05, contractCompanies, contractCompanies * 4 + Math.floor(f(4) * 20)),
+  };
+}

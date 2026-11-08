@@ -33,6 +33,7 @@ export interface LoadRow {
   contactPhone: string;
   tarps: boolean;
   oversize: boolean;
+  marketRate: number;
 }
 
 export interface SearchResult {
@@ -45,6 +46,7 @@ export interface SearchResult {
   originLabel?: string;
   destLabel?: string;
   warnings: string[];
+  similar: { rows: LoadRow[]; total: number };
 }
 
 const RAD = Math.PI / 180;
@@ -98,17 +100,22 @@ export async function searchLoads(s: LoadSearch): Promise<SearchResult> {
   if (s.origin && !o.city && !o.states.length) warnings.push(`Origin "${s.origin}" is not a known market — pick a city from the list.`);
   if (s.dest && !d.city && !d.states.length) warnings.push(`Destination "${s.dest}" is not a known market — pick a city from the list.`);
 
-  if (o.city) {
-    const b = boundingBox(o.city.lat, o.city.lon, s.dho);
-    match.originLat = { $gte: b.minLat, $lte: b.maxLat };
-    match.originLng = { $gte: b.minLng, $lte: b.maxLng };
-  }
+  // radius part of the filter (indexed bounding box); reused with a wider radius for "similar results"
+  const geoMatch = (dhoR: number, dhdR: number) => {
+    const m: Record<string, unknown> = {};
+    if (o.city) {
+      const b = boundingBox(o.city.lat, o.city.lon, dhoR);
+      m.originLat = { $gte: b.minLat, $lte: b.maxLat };
+      m.originLng = { $gte: b.minLng, $lte: b.maxLng };
+    }
+    if (d.city) {
+      const b = boundingBox(d.city.lat, d.city.lon, dhdR);
+      m.destLat = { $gte: b.minLat, $lte: b.maxLat };
+      m.destLng = { $gte: b.minLng, $lte: b.maxLng };
+    }
+    return m;
+  };
   if (o.states.length) match.originState = { $in: o.states };
-  if (d.city) {
-    const b = boundingBox(d.city.lat, d.city.lon, s.dhd);
-    match.destLat = { $gte: b.minLat, $lte: b.maxLat };
-    match.destLng = { $gte: b.minLng, $lte: b.maxLng };
-  }
   if (d.states.length) match.destState = { $in: d.states };
   if (s.equipment.length) match.equipment = { $in: s.equipment };
 
@@ -141,18 +148,50 @@ export async function searchLoads(s: LoadSearch): Promise<SearchResult> {
   }
   if (s.searchBackHrs) match.postedAt = { $gte: ejDate(new Date(Date.now() - s.searchBackHrs * 3600000)) };
 
-  const pipeline: Record<string, unknown>[] = [{ $match: match }];
-  pipeline.push({
+  const distanceFields = {
     $addFields: {
       dho: o.city ? roadMilesExpr(o.city.lat, o.city.lon, "originLat", "originLng") : "$deadhead",
       dhd: d.city ? roadMilesExpr(d.city.lat, d.city.lon, "destLat", "destLng") : null,
       hasRate: { $cond: [{ $eq: [{ $ifNull: ["$rate", null] }, null] }, 0, 1] },
     },
-  });
+  };
+  const pipeline: Record<string, unknown>[] = [{ $match: { ...match, ...geoMatch(s.dho, s.dhd) } }, distanceFields];
   const radius: Record<string, unknown> = {};
   if (o.city) radius.dho = { $lte: s.dho };
   if (d.city) radius.dhd = { $lte: s.dhd };
   if (Object.keys(radius).length) pipeline.push({ $match: radius });
+
+  const rowProjection = [
+    { $lookup: { from: "Broker", localField: "brokerId", foreignField: "_id", as: "b", pipeline: [{ $project: { creditScore: 1, daysToPay: 1 } }] } },
+    {
+      $project: {
+        ref: 1, status: 1, postedAt: 1, originCity: 1, originState: 1, destCity: 1, destState: 1, pickupDate: 1, deliveryDate: 1,
+        miles: 1, dho: 1, dhd: 1, equipment: 1, size: 1, weight: 1, lengthFt: 1, commodity: 1, rate: 1, rpm: 1, brokerName: 1, marketRate: 1,
+        creditScore: { $first: "$b.creditScore" }, daysToPay: { $first: "$b.daysToPay" }, contactPhone: "$contact.phone",
+        tarps: "$cargo.tarps", oversize: "$cargo.oversize",
+      },
+    },
+  ];
+
+  // "Similar results": same filters with twice the deadhead radius, outside the exact radius
+  let similar: { rows: LoadRow[]; total: number } = { rows: [], total: 0 };
+  if ((o.city || d.city) && s.page === 1) {
+    const wide = { dho: Math.min(500, s.dho * 2 || 50), dhd: Math.min(500, s.dhd * 2 || 50) };
+    const within: Record<string, unknown> = {};
+    if (o.city) within.dho = { $lte: wide.dho };
+    if (d.city) within.dhd = { $lte: wide.dhd };
+    const outside = [...(o.city ? [{ dho: { $gt: s.dho } }] : []), ...(d.city ? [{ dhd: { $gt: s.dhd } }] : [])];
+    const simRaw = await prisma.load.aggregateRaw({
+      pipeline: [
+        { $match: { ...match, ...geoMatch(wide.dho, wide.dhd) } },
+        distanceFields,
+        { $match: { ...within, $or: outside } },
+        { $facet: { rows: [{ $sort: { dho: 1, postedAt: -1, _id: 1 } }, { $limit: 20 }, ...rowProjection], total: [{ $count: "n" }] } },
+      ] as Prisma.InputJsonValue[],
+    });
+    const [sim] = fromEjson<{ rows: LoadRow[]; total: { n: number }[] }[]>(simRaw);
+    similar = { rows: sim?.rows ?? [], total: sim?.total[0]?.n ?? 0 };
+  }
 
   const sorts: Record<string, Record<string, 1 | -1>> = {
     newest: { postedAt: -1 },
@@ -172,15 +211,7 @@ export async function searchLoads(s: LoadSearch): Promise<SearchResult> {
         { $sort: { ...sorts[s.sort], _id: 1 } },
         { $skip: (s.page - 1) * PAGE_SIZE },
         { $limit: PAGE_SIZE },
-        { $lookup: { from: "Broker", localField: "brokerId", foreignField: "_id", as: "b", pipeline: [{ $project: { creditScore: 1, daysToPay: 1 } }] } },
-        {
-          $project: {
-            ref: 1, status: 1, postedAt: 1, originCity: 1, originState: 1, destCity: 1, destState: 1, pickupDate: 1, deliveryDate: 1,
-            miles: 1, dho: 1, dhd: 1, equipment: 1, size: 1, weight: 1, lengthFt: 1, commodity: 1, rate: 1, rpm: 1, brokerName: 1,
-            creditScore: { $first: "$b.creditScore" }, daysToPay: { $first: "$b.daysToPay" }, contactPhone: "$contact.phone",
-            tarps: "$cargo.tarps", oversize: "$cargo.oversize",
-          },
-        },
+        ...rowProjection,
       ],
       total: [{ $count: "n" }],
       lane: [{ $match: { rate: { $ne: null } } }, { $group: { _id: null, rate: { $avg: "$rate" }, rpm: { $avg: "$rpm" } } }],
@@ -200,6 +231,7 @@ export async function searchLoads(s: LoadSearch): Promise<SearchResult> {
     originLabel: o.city ? `${o.city.n}, ${o.city.s}` : o.states.join(", ") || undefined,
     destLabel: d.city ? `${d.city.n}, ${d.city.s}` : d.states.join(", ") || undefined,
     warnings,
+    similar,
   };
 }
 

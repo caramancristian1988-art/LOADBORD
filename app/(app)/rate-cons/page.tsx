@@ -31,7 +31,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/rate-cons">
   const selectedId = typeof sp.id === "string" ? sp.id : loads[0].id;
   const selected = loads.find((l) => l.id === selectedId) ?? loads[0];
   return (
-    <div className="grid min-h-0 grid-cols-[380px_1fr] gap-4">
+    <div className="grid min-h-0 grid-cols-1 gap-4 md:grid-cols-[320px_1fr] lg:grid-cols-[380px_1fr]">
       <div className="card scroll-thin max-h-[calc(100vh-170px)] overflow-y-auto">
         <ul className="divide-y divide-line">
           {loads.map((l) => (
@@ -52,11 +52,14 @@ async function Content({ searchParams }: { searchParams: PageProps<"/rate-cons">
                 </div>
                 <div className="text-[11.5px] text-muted">{longDay(l.bookedAt)}</div>
               </Link>
+              <a className="btn btn-outline btn-pill mx-4 mb-3 flex h-9 md:hidden" href={`/api/loads/${l.id}/ratecon`} target="_blank" rel="noreferrer">
+                <FileText size={14} /> Open PDF
+              </a>
             </li>
           ))}
         </ul>
       </div>
-      <div className="card flex flex-col overflow-hidden">
+      <div className="card hidden flex-col overflow-hidden md:flex">
         <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
           <div className="text-[13px]">
             <b>{selected.rateConNo}</b> · {selected.ref} · {selected.brokerName}
@@ -78,7 +81,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/rate-cons">
 
 export default function RateConsPage(props: PageProps<"/rate-cons">) {
   return (
-    <div className="p-5">
+    <div className="p-3 md:p-5">
       <div className="mb-4">
         <h1 className="text-[20px] font-bold">Rate Confirmations</h1>
         <p className="text-[13px] text-muted">Every booked load gets a broker rate confirmation. Review, print or download them here.</p>

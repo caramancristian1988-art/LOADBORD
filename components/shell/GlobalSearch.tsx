@@ -50,9 +50,9 @@ export function GlobalSearch() {
           setErr(null);
         }}
         placeholder="Load # or city (e.g. LD-104233, Dallas, TX)"
-        className="h-8 w-full rounded border border-line bg-surface pr-3 pl-8 text-[13px] outline-none focus:border-primary focus:bg-white"
+        className="h-8 w-full rounded border border-line bg-surface pr-3 pl-8 text-[13px] outline-none focus:border-primary focus:bg-panel"
       />
-      {err && <div className="absolute top-9 left-0 z-50 rounded bg-ink px-2 py-1 text-xs text-white shadow">{err}</div>}
+      {err && <div className="absolute top-9 left-0 z-50 rounded bg-sidebar px-2 py-1 text-xs text-white shadow">{err}</div>}
     </form>
   );
 }

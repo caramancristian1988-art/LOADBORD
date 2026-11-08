@@ -151,6 +151,7 @@ model Load {
   contact       BrokerContact
   instructions  String[]
   notes         String?
+  dispatcherNote String?       // the dispatcher's own note (ADD NOTE)
 
   // dispatch side (set once booked by the user)
   bookedRate    Int?

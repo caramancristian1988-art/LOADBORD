@@ -204,25 +204,43 @@ export function CallBroker({
       }
       subtitle={`${load.lane} · ${load.miles.toLocaleString("en-US")} mi · posted ${load.rate != null ? money(load.rate) : "no rate (call for rate)"}`}
     >
-      <div className="grid grid-cols-[260px_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[260px_1fr] md:gap-4">
         {/* broker card */}
         <div className="flex flex-col gap-3">
-          <div className="rounded-lg bg-sidebar p-4 text-center text-white">
-            <div className={`mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary text-xl font-bold ${phase === "dialing" && channel === "call" ? "ringing" : ""}`}>{initials(load.contact.name)}</div>
-            <div className="mt-2 text-[15px] font-bold">{load.contact.name}</div>
-            <div className="text-[12px] text-sidebar-text">{load.brokerName}</div>
-            <div className="tnum mt-2 text-[14px] font-medium">
-              {channel === "call" ? load.contact.phone : load.contact.email}
-              {channel === "call" && load.contact.ext ? <span className="text-sidebar-text"> ext {load.contact.ext}</span> : null}
-            </div>
-            <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] ${neg?.status === "AGREED" ? "bg-good" : neg?.status === "LOST" ? "bg-bad" : "bg-white/15"}`}>
-              {phase === "live" && neg?.status === "OPEN" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4ade80]" />}
-              {statusLine}
+          <div className="flex items-center gap-3 rounded-lg bg-sidebar p-3 text-white md:block md:p-4 md:text-center">
+            <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-lg font-bold md:mx-auto md:h-16 md:w-16 md:text-xl ${phase === "dialing" && channel === "call" ? "ringing" : ""}`}>{initials(load.contact.name)}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-bold md:mt-2">{load.contact.name}</div>
+              <div className="truncate text-[12px] text-sidebar-text">{load.brokerName}</div>
+              <div className="tnum mt-1 truncate text-[13px] font-medium md:mt-2 md:text-[14px]">
+                {channel === "call" ? load.contact.phone : load.contact.email}
+                {channel === "call" && load.contact.ext ? <span className="text-sidebar-text"> ext {load.contact.ext}</span> : null}
+              </div>
+              <div className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] md:mt-2 ${neg?.status === "AGREED" ? "bg-good" : neg?.status === "LOST" ? "bg-bad" : "bg-white/15"}`}>
+                {phase === "live" && neg?.status === "OPEN" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4ade80]" />}
+                {statusLine}
+              </div>
             </div>
           </div>
 
           {neg && (
-            <div className="card p-3 text-[12.5px]">
+            <div className="flex justify-between rounded-md bg-surface px-3 py-2 text-[12.5px] md:hidden">
+              <span>
+                <span className="text-muted">Initial </span>
+                <b className="tnum">{money(neg.postedRate)}</b>
+              </span>
+              <span>
+                <span className="text-muted">Broker at </span>
+                <b className="tnum text-primary">{money(lastBrokerOffer ?? neg.brokerOffer)}</b>
+              </span>
+              <span>
+                <span className="text-muted">Rounds </span>
+                <b className="tnum">{neg.rounds}</b>
+              </span>
+            </div>
+          )}
+          {neg && (
+            <div className="card hidden p-3 text-[12.5px] md:block">
               <div className="flex justify-between">
                 <span className="text-muted">Initial offer</span>
                 <span className="tnum font-medium">{money(neg.postedRate)}</span>
@@ -270,8 +288,8 @@ export function CallBroker({
         </div>
 
         {/* conversation */}
-        <div className="flex min-h-[460px] flex-col rounded-lg border border-line">
-          <div ref={scroller} className="scroll-thin flex-1 space-y-2.5 overflow-y-auto bg-surface/60 p-4" style={{ maxHeight: 400 }}>
+        <div className="flex min-h-[380px] flex-col rounded-lg border border-line md:min-h-[460px]">
+          <div ref={scroller} className="scroll-thin max-h-[46vh] flex-1 space-y-2.5 overflow-y-auto bg-surface/60 p-3 md:max-h-[400px] md:p-4">
             {phase === "setup" && (
               <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
                 <div className="text-[14px] font-medium">Contact {load.contact.name.split(" ")[0]} about this load</div>
@@ -309,7 +327,7 @@ export function CallBroker({
                   <div key={i} className={`pop flex ${m.from === "dispatcher" ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[13px] leading-snug whitespace-pre-line ${
-                        m.from === "dispatcher" ? "rounded-br-sm bg-primary text-white" : "rounded-bl-sm border border-line bg-white"
+                        m.from === "dispatcher" ? "rounded-br-sm bg-primary text-white" : "rounded-bl-sm border border-line bg-panel"
                       }`}
                     >
                       <div className={`mb-0.5 text-[10.5px] font-medium ${m.from === "dispatcher" ? "text-white/70" : "text-muted"}`}>{m.from === "dispatcher" ? "You" : load.contact.name.split(" ")[0]}</div>
@@ -320,7 +338,7 @@ export function CallBroker({
               )}
             {typing && (
               <div className="flex">
-                <div className="rounded-2xl rounded-bl-sm border border-line bg-white px-3.5 py-2.5">
+                <div className="rounded-2xl rounded-bl-sm border border-line bg-panel px-3.5 py-2.5">
                   <div className="typing">
                     <span />
                     <span />
@@ -337,10 +355,10 @@ export function CallBroker({
           </div>
 
           {phase === "live" && neg && (
-            <div className="border-t border-line bg-white p-3">
+            <div className="border-t border-line bg-panel p-3">
               <ErrorNote>{error}</ErrorNote>
               {ended ? (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {neg.status === "AGREED" ? (
                     <>
                       <CheckCircle2 className="text-good" size={22} />
@@ -373,15 +391,15 @@ export function CallBroker({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="no-scrollbar -mx-3 flex gap-1.5 overflow-x-auto px-3 md:mx-0 md:flex-wrap md:px-0">
                     {QUESTIONS.map((q) => (
-                      <button key={q.topic} className="chip normal-case tracking-normal" disabled={!canTalk} onClick={() => act({ type: "ask", topic: q.topic, text: q.text })}>
+                      <button key={q.topic} className="chip shrink-0 normal-case tracking-normal" disabled={!canTalk} onClick={() => act({ type: "ask", topic: q.topic, text: q.text })}>
                         {q.label}
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-[150px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-[118px] md:w-[150px]">
                       <span className="absolute top-1/2 left-2.5 -translate-y-1/2 text-muted">$</span>
                       <input
                         className="input input-sm tnum pl-6"

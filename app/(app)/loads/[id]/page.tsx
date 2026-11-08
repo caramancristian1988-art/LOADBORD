@@ -1,39 +1,31 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { getLoadDetail, laneBand } from "@/lib/queries/loads";
 import { LoadDetailView } from "@/components/load/LoadDetailView";
 
-async function Detail({ params }: { params: PageProps<"/loads/[id]">["params"] }) {
-  const { id } = await params;
+async function Detail({ params, searchParams }: { params: PageProps<"/loads/[id]">["params"]; searchParams: PageProps<"/loads/[id]">["searchParams"] }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const load = await getLoadDetail(id);
   if (!load) notFound();
   const band = await laneBand(load.equipment, load.originState, load.destState);
-  return (
-    <div className="card overflow-hidden">
-      <LoadDetailView data={JSON.parse(JSON.stringify({ load, band }))} />
-    </div>
-  );
+  return <LoadDetailView data={JSON.parse(JSON.stringify({ load, band }))} print={sp.print === "1"} />;
 }
 
 export default function LoadPage(props: PageProps<"/loads/[id]">) {
   return (
-    <div className="mx-auto w-full max-w-[1100px] p-5">
-      <Link href="/loads/search" className="mb-3 inline-flex items-center gap-1 text-[13px] text-primary hover:underline">
-        <ChevronLeft size={14} /> Back to load board
-      </Link>
+    <div className="mx-auto w-full max-w-[1400px] p-3 md:p-5">
       <Suspense
         fallback={
-          <div className="card space-y-3 p-5">
-            <div className="skeleton h-5 w-48" />
-            <div className="skeleton h-7 w-96" />
-            <div className="skeleton h-20" />
-            <div className="skeleton h-72" />
+          <div className="space-y-3">
+            <div className="skeleton h-7 w-80 max-w-full" />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
+              <div className="skeleton h-96" />
+              <div className="skeleton h-72" />
+            </div>
           </div>
         }
       >
-        <Detail params={props.params} />
+        <Detail params={props.params} searchParams={props.searchParams} />
       </Suspense>
     </div>
   );

@@ -101,11 +101,11 @@ export function BookLoad({
             {load.lane} · Rate confirmation {done.rateConNo}
           </div>
           {done.training && (
-            <div className="mt-3 w-full rounded-lg border border-[#d9c7f7] bg-[#f4effd] p-3 text-left">
-              <div className="flex items-center gap-2 font-bold text-[#3b1d78]">
+            <div className="mt-3 w-full rounded-lg border border-violet-line bg-violet-50 p-3 text-left">
+              <div className="flex items-center gap-2 font-bold text-violet-ink">
                 <GraduationCap size={16} /> Training score: {done.training.score}/100
               </div>
-              <div className="mt-1 text-[13px] text-[#3b1d78]">{done.training.summary}</div>
+              <div className="mt-1 text-[13px] text-violet-ink">{done.training.summary}</div>
               <Link href="/training" className="mt-1 inline-block text-[12.5px] font-medium text-violet hover:underline">
                 See full evaluation →
               </Link>
@@ -164,6 +164,15 @@ export function BookLoad({
           </div>
         </div>
 
+        {trucks.length > 0 && compatible.length === 0 && (
+          <WarnNote>
+            None of your trucks can haul this {equipName(load.equipment)} load ({load.weight.toLocaleString("en-US")} lbs).{" "}
+            <Link href="/trucks" className="font-medium underline">
+              Add a truck in My Trucks
+            </Link>{" "}
+            or pick a load that fits your fleet.
+          </WarnNote>
+        )}
         <Field label="Truck">
           <select
             className="input"
@@ -197,7 +206,7 @@ export function BookLoad({
         </Field>
 
         {fit && (
-          <div className="grid grid-cols-4 gap-2 rounded-lg bg-surface p-3 text-center">
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-surface p-3 text-center md:grid-cols-4">
             {[
               ["Deadhead", `${dh} mi`],
               ["Loaded", `${load.miles} mi`],
@@ -209,7 +218,7 @@ export function BookLoad({
                 <div className={`tnum text-[15px] font-bold ${k === "Est. profit" && profit != null ? (profit > 0 ? "text-good" : "text-bad") : ""}`}>{v}</div>
               </div>
             ))}
-            <div className="col-span-4 text-[11px] text-muted">Profit uses your operating cost of {rpmFmt(costPerMile)}/mi (Settings) on loaded + deadhead miles.</div>
+            <div className="col-span-2 text-[11px] text-muted md:col-span-4">Profit uses your operating cost of {rpmFmt(costPerMile)}/mi (Settings) on loaded + deadhead miles.</div>
           </div>
         )}
         {fit?.errors.length ? <ErrorNote>{fit.errors.join(" ")}</ErrorNote> : null}

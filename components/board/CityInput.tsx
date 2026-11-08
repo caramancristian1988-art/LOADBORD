@@ -95,7 +95,7 @@ export function CityInput({
         }}
       />
       {open && options.length > 0 && !exact && (
-        <ul className="absolute top-[42px] right-0 left-0 z-50 max-h-72 overflow-auto rounded border border-line bg-white py-1 shadow-lg">
+        <ul className="absolute top-[42px] right-0 left-0 z-50 max-h-72 overflow-auto rounded border border-line bg-panel py-1 shadow-lg">
           {options.map((o, i) => (
             <li key={o.label}>
               <button

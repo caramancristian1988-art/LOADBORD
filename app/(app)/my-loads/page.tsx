@@ -35,19 +35,19 @@ async function Content({ searchParams }: { searchParams: PageProps<"/my-loads">[
   const activeRevenue = rows.reduce((a, r) => a + (r.bookedRate ?? 0), 0);
   return (
     <>
-      <div className="flex gap-1 border-b border-line bg-white px-5">
+      <div className="no-scrollbar flex gap-1 overflow-x-auto border-b border-line bg-panel px-3 md:px-5">
         {MY_TABS.map((t) => (
           <Link
             key={t}
             href={`/my-loads?tab=${t}`}
-            className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-[13px] font-medium ${t === tab ? "border-primary text-primary" : "border-transparent text-ink-2 hover:text-ink"}`}
+            className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-[13px] font-medium ${t === tab ? "border-primary text-primary" : "border-transparent text-ink-2 hover:text-ink"}`}
           >
             {t === "AVAILABLE" ? "Available (contacted)" : STATUS_LABEL[t]}
             <span className={`tnum rounded-full px-1.5 text-[11px] ${t === tab ? "bg-primary text-white" : "bg-surface text-muted"}`}>{counts[t]}</span>
           </Link>
         ))}
       </div>
-      <div className="p-5">
+      <div className="p-3 md:p-5">
         <MyLoadsTable tab={tab} rows={JSON.parse(JSON.stringify(rows))} totalRevenue={activeRevenue} />
       </div>
     </>
@@ -57,7 +57,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/my-loads">[
 export default function MyLoadsPage(props: PageProps<"/my-loads">) {
   return (
     <div className="flex flex-col">
-      <div className="flex items-end justify-between bg-white px-5 pt-4 pb-3">
+      <div className="flex items-end justify-between gap-3 bg-panel px-3 pt-4 pb-3 md:px-5">
         <div>
           <h1 className="text-[20px] font-bold">My Loads</h1>
           <p className="text-[13px] text-muted">Track every load from first call to delivery. Update statuses, assign trucks and drivers.</p>

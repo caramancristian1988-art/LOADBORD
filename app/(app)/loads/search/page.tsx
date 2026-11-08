@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Search Loads" };
 
 function FormSkeleton() {
   return (
-    <div className="border-b border-line bg-white px-4 pt-4 pb-3">
+    <div className="overflow-hidden border-b border-line bg-panel px-4 pt-4 pb-3">
       <div className="flex gap-2">
         {[200, 64, 28, 200, 64, 210, 250, 48].map((w, i) => (
           <div key={i} className="skeleton h-10" style={{ width: w }} />
@@ -28,7 +28,7 @@ function FormSkeleton() {
 
 function ResultsSkeleton() {
   return (
-    <div className="flex-1 bg-white">
+    <div className="flex-1 overflow-hidden bg-panel">
       <div className="flex items-center gap-4 border-b border-line px-4 py-3">
         <div className="skeleton h-5 w-28" />
         <div className="skeleton h-4 w-36" />
@@ -68,7 +68,9 @@ async function Results({ searchParams }: { searchParams: PageProps<"/loads/searc
       originLabel={r.originLabel}
       destLabel={r.destLabel}
       hasOriginCity={!!findCity(s.origin)}
+      hasDestCity={!!findCity(s.dest)}
       warnings={r.warnings}
+      similar={r.similar}
     />
   );
 }

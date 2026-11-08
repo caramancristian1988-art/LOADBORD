@@ -33,7 +33,7 @@ async function Kpis() {
   const miles = all.reduce((a, l) => a + l.miles, 0);
   const avgRpm = miles ? revenue / miles : null;
   return (
-    <div className="grid grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
       <Stat label="Loads on board" value={available.toLocaleString("en-US")} sub="live, refreshed as you work" />
       <Stat label="In negotiation" value={negotiating} sub="open calls & agreed rates" tone={negotiating ? "warn" : undefined} />
       <Stat label="Active loads" value={active.length} sub="booked · dispatched · in transit" />
@@ -54,7 +54,7 @@ async function Fleet() {
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   return (
-    <div className="card">
+    <div className="card overflow-x-auto">
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <h2 className="font-bold">Fleet status</h2>
         <Link href="/trucks" className="text-[12.5px] text-primary hover:underline">
@@ -208,8 +208,8 @@ async function TrainingCard() {
   ]);
   const avg = done.length ? Math.round(done.reduce((a, d) => a + (d.score ?? 0), 0) / done.length) : null;
   return (
-    <div className="card border-[#d9c7f7] bg-[#faf8ff] p-4">
-      <div className="flex items-center gap-2 font-bold text-[#3b1d78]">
+    <div className="card border-violet-line bg-violet-50 p-4">
+      <div className="flex items-center gap-2 font-bold text-violet-ink">
         <GraduationCap size={17} /> Training
       </div>
       {active ? (
@@ -221,7 +221,7 @@ async function TrainingCard() {
       )}
       <div className="mt-3 flex items-center justify-between">
         <span className="text-[12.5px] text-muted">{avg != null ? `${done.length} graded · avg ${avg}/100` : "No attempts yet"}</span>
-        <Link href="/training" className="btn btn-sm bg-violet text-white hover:bg-[#5b21b6]">
+        <Link href="/training" className="btn btn-sm bg-violet text-white hover:bg-violet-600">
           {active ? "Continue" : "Start a scenario"}
         </Link>
       </div>
@@ -231,8 +231,8 @@ async function TrainingCard() {
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-4 p-5">
-      <div className="flex items-end justify-between">
+    <div className="flex flex-col gap-4 p-3 md:p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-[20px] font-bold">Dispatch dashboard</h1>
           <p className="text-[13px] text-muted">Your trucks, your loads and the market at a glance.</p>
@@ -246,10 +246,10 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
-      <Suspense fallback={<div className="grid grid-cols-5 gap-3">{Array.from({ length: 5 }, (_, i) => <Skel key={i} h={88} />)}</div>}>
+      <Suspense fallback={<div className="grid grid-cols-2 gap-3 md:grid-cols-5">{Array.from({ length: 5 }, (_, i) => <Skel key={i} h={88} />)}</div>}>
         <Kpis />
       </Suspense>
-      <div className="grid grid-cols-[1.4fr_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="flex flex-col gap-4">
           <Suspense fallback={<Skel h={220} />}>
             <Fleet />

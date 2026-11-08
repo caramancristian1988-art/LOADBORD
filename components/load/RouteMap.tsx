@@ -99,8 +99,8 @@ export function RouteMap({ pickup, delivery, start, height = 230 }: { pickup: Pt
 
   return (
     <div className="relative overflow-hidden rounded border border-line">
-      <div ref={el} style={{ height }} className="bg-[#e8edf2]" />
-      <div className="pointer-events-none absolute bottom-1 left-1 z-[400] flex gap-2 rounded bg-white/90 px-2 py-0.5 text-[10.5px] text-muted">
+      <div ref={el} style={{ height }} className="bg-surface" />
+      <div className="pointer-events-none absolute bottom-1 left-1 z-[400] flex gap-2 rounded bg-panel/90 px-2 py-0.5 text-[10.5px] text-muted">
         <span>
           <b className="text-primary">P</b> pickup
         </span>
@@ -113,7 +113,7 @@ export function RouteMap({ pickup, delivery, start, height = 230 }: { pickup: Pt
           </span>
         )}
       </div>
-      {routeNote && <div className="absolute top-1 right-1 z-[400] rounded bg-white/90 px-2 py-0.5 text-[10.5px] text-muted">{routeNote}</div>}
+      {routeNote && <div className="absolute top-1 right-1 z-[400] rounded bg-panel/90 px-2 py-0.5 text-[10.5px] text-muted">{routeNote}</div>}
     </div>
   );
 }

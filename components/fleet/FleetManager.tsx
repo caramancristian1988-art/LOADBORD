@@ -88,6 +88,45 @@ export function FleetManager({ data }: { data: { trucks: TruckRow[]; drivers: Dr
   const loadsOf = (truckId: string) => booked.filter((b) => b.truckId === truckId);
   const unassignedOrOther = (t: TruckRow) => booked.filter((b) => b.status === "BOOKED" && b.truckId !== t.id && canHaul(t.equipment, b.equipment) && b.weight <= t.maxWeight);
 
+  function truckActions(t: TruckRow) {
+    return (
+      <>
+        <Link className="btn btn-primary btn-sm" href={searchHref(t)} title="Search loads near this truck">
+          <Search size={13} /> Find loads
+        </Link>
+        <button className="btn btn-outline btn-sm" onClick={() => setAssignFor(t)} title="Assign a booked load">
+          <Link2 size={13} /> Assign load
+        </button>
+        <button
+          className="btn btn-outline btn-sm"
+          title="Edit"
+          aria-label={`Edit truck #${t.number}`}
+          onClick={() =>
+            setTruckForm({
+              id: t.id,
+              v: {
+                number: t.number,
+                equipment: t.equipment,
+                trailerLength: t.trailerLength,
+                maxWeight: t.maxWeight,
+                location: `${t.city}, ${t.state}`,
+                availableDate: isoDay(t.availableDate),
+                status: t.status,
+                driverId: t.driverId ?? "",
+                notes: t.notes ?? "",
+              },
+            })
+          }
+        >
+          <Pencil size={13} />
+        </button>
+        <button className="btn btn-danger btn-sm" title="Delete" aria-label={`Delete truck #${t.number}`} onClick={() => setConfirmDel({ kind: "truck", id: t.id, label: `truck #${t.number}` })}>
+          <Trash2 size={13} />
+        </button>
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <ErrorNote>{!truckForm && !driverForm && !assignFor && !confirmDel ? error : null}</ErrorNote>
@@ -102,7 +141,50 @@ export function FleetManager({ data }: { data: { trucks: TruckRow[]; drivers: Dr
             <Plus size={15} /> Add truck
           </button>
         </div>
-        <div className="card overflow-x-auto">
+        {/* phones: one card per truck */}
+        {trucks.length > 0 && (
+          <div className="flex flex-col gap-3 md:hidden">
+            {trucks.map((t) => {
+              const ls = loadsOf(t.id);
+              return (
+                <div key={t.id} className="card p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[16px] font-bold">#{t.number}</span>
+                    <EquipBadge code={t.equipment} full />
+                    <span className="ml-auto">
+                      <StatusBadge status={t.status === "AVAILABLE" ? "AVAILABLE_TRUCK" : t.status} label={TRUCK_STATUS_LABEL[t.status]} />
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12.5px]">
+                    <span className="text-muted">Location</span>
+                    <span>
+                      {t.city}, {t.state}
+                    </span>
+                    <span className="text-muted">Available</span>
+                    <span>{shortDay(t.availableDate)}</span>
+                    <span className="text-muted">Trailer</span>
+                    <span>
+                      {t.trailerLength} ft · {t.maxWeight.toLocaleString("en-US")} lbs
+                    </span>
+                    <span className="text-muted">Driver</span>
+                    <span className={t.driver ? "" : "text-bad"}>{t.driver ? `${t.driver.name} · ${t.driver.phone}` : "No driver"}</span>
+                  </div>
+                  {ls.length > 0 && (
+                    <div className="mt-2 space-y-0.5 text-[12.5px]">
+                      {ls.map((l) => (
+                        <Link key={l.id} href={`/loads/${l.id}`} className="block text-primary">
+                          {l.ref} · {l.originCity} → {l.destCity} · {STATUS_LABEL[l.status]}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2 [&>*]:h-9">{truckActions(t)}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className={`card overflow-x-auto ${trucks.length ? "hidden md:block" : ""}`}>
           {trucks.length === 0 ? (
             <Empty title="No trucks yet" icon={<Truck size={34} />}>
               Add your first truck to start booking loads.
@@ -168,39 +250,7 @@ export function FleetManager({ data }: { data: { trucks: TruckRow[]; drivers: Dr
                         )}
                       </td>
                       <td>
-                        <div className="flex justify-end gap-1.5">
-                          <Link className="btn btn-primary btn-sm" href={searchHref(t)} title="Search loads near this truck">
-                            <Search size={13} /> Find loads
-                          </Link>
-                          <button className="btn btn-outline btn-sm" onClick={() => setAssignFor(t)} title="Assign a booked load">
-                            <Link2 size={13} /> Assign load
-                          </button>
-                          <button
-                            className="btn btn-outline btn-sm"
-                            title="Edit"
-                            onClick={() =>
-                              setTruckForm({
-                                id: t.id,
-                                v: {
-                                  number: t.number,
-                                  equipment: t.equipment,
-                                  trailerLength: t.trailerLength,
-                                  maxWeight: t.maxWeight,
-                                  location: `${t.city}, ${t.state}`,
-                                  availableDate: isoDay(t.availableDate),
-                                  status: t.status,
-                                  driverId: t.driverId ?? "",
-                                  notes: t.notes ?? "",
-                                },
-                              })
-                            }
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button className="btn btn-danger btn-sm" title="Delete" onClick={() => setConfirmDel({ kind: "truck", id: t.id, label: `truck #${t.number}` })}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
+                        <div className="flex justify-end gap-1.5">{truckActions(t)}</div>
                       </td>
                     </tr>
                   );
@@ -295,7 +345,7 @@ export function FleetManager({ data }: { data: { trucks: TruckRow[]; drivers: Dr
         }
       >
         {truckForm && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Truck number">
               <input className="input" value={truckForm.v.number} onChange={(e) => setTruckForm({ ...truckForm, v: { ...truckForm.v, number: e.target.value } })} placeholder="105" />
             </Field>
@@ -374,7 +424,7 @@ export function FleetManager({ data }: { data: { trucks: TruckRow[]; drivers: Dr
         }
       >
         {driverForm && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Full name" className="col-span-2">
               <input className="input" value={driverForm.v.name} onChange={(e) => setDriverForm({ ...driverForm, v: { ...driverForm.v, name: e.target.value } })} />
             </Field>

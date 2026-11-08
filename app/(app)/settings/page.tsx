@@ -21,7 +21,7 @@ async function Content() {
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto w-full max-w-[900px] p-5">
+    <div className="mx-auto w-full max-w-[900px] p-3 md:p-5">
       <h1 className="mb-1 text-[20px] font-bold">Settings</h1>
       <p className="mb-4 text-[13px] text-muted">Your carrier profile appears on rate confirmations. Operating cost drives profit checks and training grades.</p>
       <Suspense fallback={<div className="skeleton h-96" />}>
